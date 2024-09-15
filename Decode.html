@@ -54,31 +54,46 @@
 </head>
 
 <body>
+    <div style="text-align: center;">
+        <hr />
+        <input type="text" id="customSalt" placeholder="Enter salt">
+        <hr />
+        <hr />
+        <input type="text" id="base64String" placeholder="Enter Base 64 String">
+        <hr />
+        <hr />
+        <input type="text" id="iv" placeholder="Enter IV">
+        <hr />
+        <hr />
+        <div>Plain Text</div>
+        <div id="plainText"></div>
+        <hr />
+        <button id="decryptPlainTextBtn">Decrypt</button>
+    </div>
     <script>
-        // Example usage
-        (async () => {
-            // 128-bit key in hex format (16 bytes)
-            const customSalt = '1042120113253243035343020045550301310404400112555302202324220523';
+        async function handleButtonClick() {
+            const customSaltTextField = document.getElementById('customSalt');
+            const customSaltText = customSaltTextField.value;
+            const hexKey = await importKey(customSaltText);
 
-            // Import the key
-            const hexKey = await importKey(customSalt);
+            const base64StringTextField = document.getElementById('base64String');
+            const base64StringText = base64StringTextField.value;
+            const encrypted = base64ToArrayBuffer(base64StringText);
 
-            const base64EncryptedString = "PM6a0zjt52IcSZYGWN5iJW0vNzRg";
-            const encrypted = base64ToArrayBuffer(base64EncryptedString);
-            const intArray = [53, 199, 217, 110, 0, 226, 67, 154, 223, 83, 195, 139];
+            const ivTextField = document.getElementById('iv');
+            const ivText = ivTextField.value;
+            const ivIntArray = String(ivTextField.value).split(',').map(x => Number(x.trim()));
+            const iv = new Uint8Array(ivIntArray);
 
-            // Convert to Uint8Array
-            const iv = new Uint8Array(intArray);
             const decoder = new TextDecoder('utf-8');
-
-            // Decode the Uint8Array into a string
             const decodedString = decoder.decode(new Uint8Array(encrypted));
+            const plainText = await decryptString(encrypted, hexKey, iv);
 
-            const decrypted = await decryptString(encrypted, hexKey, iv);
+            document.getElementById('plainText').innerHTML = plainText;
+        }
 
-            console.log(decrypted)
-        })();
-
+        const button = document.getElementById('decryptPlainTextBtn');
+        button.addEventListener('click', handleButtonClick);
     </script>
 </body>
 
