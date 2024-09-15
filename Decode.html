@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Decode</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script>
+        async function importKey(rawKey) {
+            // Convert rawKey (hex string) to Uint8Array
+            const keyArray = new Uint8Array(rawKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+            // Import the raw key into a CryptoKey object
+            return crypto.subtle.importKey(
+                'raw', // Key format
+                keyArray, // Key data
+                {
+                    name: 'AES-GCM',
+                    length: 128, // Key length in bits
+                },
+                false, // Whether the key is extractable
+                ['encrypt', 'decrypt'] // Key usages
+            );
+        }
+        async function decryptString(encryptedData, key, iv) {
+            const decrypted = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv,
+                },
+                key,
+                encryptedData
+            );
+            return new TextDecoder().decode(decrypted);
+        }
+        function base64ToArrayBuffer(base64) {
+            // Decode the Base64 string to binary string
+            const binaryString = window.atob(base64);
+
+            // Create an ArrayBuffer with the size of the binary string
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+
+            // Fill the Uint8Array with the binary data
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Return the ArrayBuffer
+            return bytes.buffer;
+        }
+    </script>
+</head>
+
+<body>
+    <script>
+        // Example usage
+        (async () => {
+            // 128-bit key in hex format (16 bytes)
+            const customSalt = '1042120113253243035343020045550301310404400112555302202324220523';
+
+            // Import the key
+            const hexKey = await importKey(customSalt);
+
+            const base64EncryptedString = "PM6a0zjt52IcSZYGWN5iJW0vNzRg";
+            const encrypted = base64ToArrayBuffer(base64EncryptedString);
+            const intArray = [53, 199, 217, 110, 0, 226, 67, 154, 223, 83, 195, 139];
+
+            // Convert to Uint8Array
+            const iv = new Uint8Array(intArray);
+            const decoder = new TextDecoder('utf-8');
+
+            // Decode the Uint8Array into a string
+            const decodedString = decoder.decode(new Uint8Array(encrypted));
+
+            const decrypted = await decryptString(encrypted, hexKey, iv);
+
+            console.log(decrypted)
+        })();
+
+    </script>
+</body>
+
+</html>

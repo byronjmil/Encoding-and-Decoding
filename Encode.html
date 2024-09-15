@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Encode</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script>
+        function createSalt() {
+            const randomValues = new Uint8Array(64);
+            window.crypto.getRandomValues(randomValues);
+            let str = "";
+            randomValues.forEach(element => {
+                str += String(Number(element) % 6)
+            });
+            return str;
+        }
+        async function importKey(rawKey) {
+            // Convert rawKey (hex string) to Uint8Array
+            const keyArray = new Uint8Array(rawKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+            // Import the raw key into a CryptoKey object
+            return crypto.subtle.importKey(
+                'raw', // Key format
+                keyArray, // Key data
+                {
+                    name: 'AES-GCM',
+                    length: 128, // Key length in bits
+                },
+                false, // Whether the key is extractable
+                ['encrypt', 'decrypt'] // Key usages
+            );
+        }
+        async function encryptString(plainText, key) {
+            const encoded = new TextEncoder().encode(plainText);
+            const iv = crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+            const encrypted = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv,
+                },
+                key,
+                encoded
+            );
+            return { encrypted, iv };
+        }
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+    </script>
+</head>
+
+<body>
+    <div style="text-align: center;">
+        <hr />
+        <input type="text" id="plainText" placeholder="Enter some text">
+        <button id="encryptPlainTextBtn">Encrypt</button>
+        <hr />
+        <hr />
+        <div>Custom Salt</div>
+        <div id="customSalt"></div>
+        <hr />
+        <hr />
+        <div>Resulting Base 64 String</div>
+        <div id="base64String"></div>
+        <hr />
+        <hr />
+        <div>IV</div>
+        <div id="iv"></div>
+        <hr />
+    </div>
+    <script>
+        async function handleButtonClick() {
+            // Get the text field element by its ID
+            const plainTextField = document.getElementById('plainText');
+
+            // Get the value of the text field
+            const plainText = plainTextField.value;
+
+            const customSalt = createSalt();
+            document.getElementById('customSalt').innerHTML = customSalt;
+            const hexKey = await importKey(customSalt);
+            const { encrypted, iv } = await encryptString(plainText, hexKey);
+            document.getElementById('base64String').innerHTML = arrayBufferToBase64(encrypted);
+            document.getElementById('iv').innerHTML = iv;
+        }
+
+        const button = document.getElementById('encryptPlainTextBtn');
+        button.addEventListener('click', handleButtonClick);
+
+    </script>
+</body>
+
+</html>
